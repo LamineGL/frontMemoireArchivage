@@ -1,0 +1,95 @@
+<div class="login-container">
+  <div class="login-card">
+    <!-- Logo / En-tête -->
+    <div class="login-header">
+      <img src="assets/images/logo.png" alt="Olam Agri" class="logo" *ngIf="false">
+      <h2>Connexion</h2>
+      <p>Plateforme d'archivage Olam Agri</p>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div class="alert alert-danger" *ngIf="errorMessage">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ errorMessage }}
+    </div>
+
+    <!-- Formulaire de connexion -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+
+      <!-- Champ Email -->
+      <div class="form-group">
+        <label for="email">
+          <i class="fas fa-envelope"></i>
+          Email
+        </label>
+        <input
+          type="email"
+          id="email"
+          class="form-control"
+          formControlName="email"
+          placeholder="votre.email@olamagri.com"
+          [class.is-invalid]="submitted && f['email'].errors"
+        >
+        <div class="invalid-feedback" *ngIf="submitted && f['email'].errors">
+          <div *ngIf="f['email'].errors['required']">L'email est requis</div>
+          <div *ngIf="f['email'].errors['email']">Email invalide</div>
+        </div>
+      </div>
+
+      <!-- Champ Mot de passe -->
+      <div class="form-group">
+        <label for="password">
+          <i class="fas fa-lock"></i>
+          Mot de passe
+        </label>
+        <div class="password-input-wrapper">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            id="password"
+            class="form-control"
+            formControlName="password"
+            placeholder="••••••••"
+            [class.is-invalid]="submitted && f['password'].errors"
+          >
+          <button
+            type="button"
+            class="toggle-password"
+            (click)="togglePasswordVisibility()"
+          >
+            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+          </button>
+        </div>
+        <div class="invalid-feedback" *ngIf="submitted && f['password'].errors">
+          <div *ngIf="f['password'].errors['required']">Le mot de passe est requis</div>
+        </div>
+      </div>
+
+      <!-- Lien mot de passe oublié -->
+      <div class="forgot-password">
+        <a routerLink="/forgot-password">Mot de passe oublié ?</a>
+      </div>
+
+      <!-- Bouton de connexion -->
+      <button
+        type="submit"
+        class="btn btn-primary btn-block"
+        [disabled]="loading"
+      >
+        <span *ngIf="!loading">
+          <i class="fas fa-sign-in-alt"></i>
+          Se connecter
+        </span>
+        <span *ngIf="loading">
+          <i class="fas fa-spinner fa-spin"></i>
+          Connexion en cours...
+        </span>
+      </button>
+
+    </form>
+
+    <!-- Pied de page -->
+    <div class="login-footer">
+      <p>&copy; {{ currentYear }} Olam Agri. Tous droits réservés.</p>
+    </div>
+  </div>
+</div>

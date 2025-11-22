@@ -1,0 +1,266 @@
+<div class="statistiques-container fade-in">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div>
+      <h2 class="fw-bold mb-2">
+        <i class="fas fa-chart-bar me-2"></i>Statistiques Globales
+      </h2>
+      <p class="text-muted">Vue d'ensemble des statistiques du système</p>
+    </div>
+    <button class="btn btn-primary btn-modern" (click)="loadRapportHebdomadaire()" [disabled]="loadingRapport">
+      <i class="fas fa-file-alt me-2"></i>Rapport Hebdomadaire
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Chargement...</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div *ngIf="!loading && stats">
+    <!-- Stats Cards Principales -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="stat-card modern-card">
+          <div class="stat-icon bg-primary">
+            <i class="fas fa-file-alt"></i>
+          <div class="col-md-3">
+    <div class="stat-card modern-card">
+      <div class="stat-icon bg-success">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-info">
+        <h3 class="stat-number">{{ stats.total_utilisateurs }}</h3>
+        <p class="stat-label">Utilisateurs</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="stat-card modern-card">
+      <div class="stat-icon bg-warning">
+        <i class="fas fa-building"></i>
+      </div>
+      <div class="stat-info">
+        <h3 class="stat-number">{{ stats.total_departements }}</h3>
+        <p class="stat-label">Départements</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="stat-card modern-card">
+      <div class="stat-icon bg-info">
+        <i class="fas fa-database"></i>
+      </div>
+      <div class="stat-info">
+        <h3 class="stat-number">{{ formatBytes(stats.volume_stockage_total) }}</h3>
+        <p class="stat-label">Stockage Utilisé</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Documents par Statut -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="modern-card p-4">
+      <h5 class="mb-4 fw-bold">
+        <i class="fas fa-chart-pie me-2"></i>Documents par Statut
+      </h5>
+      <div class="stat-list">
+        <div class="stat-item" *ngFor="let item of stats.documents_par_statut">
+          <div class="stat-item-label">
+            <i class="fas fa-circle me-2" [class.text-success]="item.statut === 'actif'"
+               [class.text-warning]="item.statut === 'archive'"
+               [class.text-danger]="item.statut === 'supprime'"></i>
+            {{ item.statut | titlecase }}
+          </div>
+          <div class="stat-item-value">
+            <span class="badge bg-primary">{{ item.total }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documents par Département -->
+  <div class="col-md-6">
+    <div class="modern-card p-4">
+      <h5 class="mb-4 fw-bold">
+        <i class="fas fa-building me-2"></i>Documents par Département
+      </h5>
+      <div class="stat-list">
+        <div class="stat-item" *ngFor="let item of stats.documents_par_departement">
+          <div class="stat-item-label">
+            <i class="fas fa-folder me-2 text-primary"></i>
+            {{ item.nom_departement }}
+          </div>
+          <div class="stat-item-value">
+            <span class="badge bg-info">{{ item.total }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Documents par Type -->
+<div class="row g-4 mb-4">
+  <div class="col-md-12">
+    <div class="modern-card p-4">
+      <h5 class="mb-4 fw-bold">
+        <i class="fas fa-file-alt me-2"></i>Documents par Type
+      </h5>
+      <div class="row g-3">
+        <div class="col-md-3" *ngFor="let item of stats.documents_par_type">
+          <div class="type-card">
+            <i class="fas fa-file fa-2x text-primary mb-2"></i>
+            <h6 class="mb-1">{{ item.libelle_type }}</h6>
+            <span class="badge bg-primary">{{ item.total }} documents</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Utilisateurs Actifs -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="modern-card p-4">
+      <h5 class="mb-4 fw-bold">
+        <i class="fas fa-users-cog me-2"></i>Top Utilisateurs Actifs
+      </h5>
+      <div class="user-list">
+        <div class="user-item" *ngFor="let user of stats.top_utilisateurs">
+          <div class="user-avatar">
+            <i class="fas fa-user-circle fa-2x text-primary"></i>
+          </div>
+          <div class="user-info">
+            <strong>{{ user.nom_complet }}</strong>
+            <small class="text-muted">{{ user.total_actions }} actions</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activité Récente -->
+  <div class="col-md-6">
+    <div class="modern-card p-4">
+      <h5 class="mb-4 fw-bold">
+        <i class="fas fa-clock me-2"></i>Activité Récente
+      </h5>
+      <div class="activity-list">
+        <div class="activity-item" *ngFor="let activity of stats.activite_recente">
+          <div class="activity-icon">
+            <i class="fas"
+               [class.fa-plus]="activity.type_action === 'ajout'"
+               [class.fa-edit]="activity.type_action === 'modification'"
+               [class.fa-trash]="activity.type_action === 'suppression'"
+               [class.fa-download]="activity.type_action === 'telechargement'"
+               [class.text-success]="activity.type_action === 'ajout'"
+               [class.text-warning]="activity.type_action === 'modification'"
+               [class.text-danger]="activity.type_action === 'suppression'"
+               [class.text-info]="activity.type_action === 'telechargement'">
+            </i>
+          </div>
+          <div class="activity-content">
+            <strong>{{ activity.type_action | titlecase }}</strong>
+            <p class="mb-0 text-muted">
+              <small>{{ activity.user?.nom_complet }} - {{ activity.document?.titre }}</small>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Utilisateurs Actifs 7 Jours -->
+<div class="row g-4">
+  <div class="col-md-12">
+    <div class="modern-card p-4">
+      <h5 class="mb-3 fw-bold">
+        <i class="fas fa-chart-line me-2"></i>Statistiques Hebdomadaires
+      </h5>
+      <div class="row text-center">
+        <div class="col-md-4">
+          <div class="stat-box">
+            <i class="fas fa-user-check fa-3x text-success mb-2"></i>
+            <h3>{{ stats.utilisateurs_actifs_7j }}</h3>
+            <p class="text-muted">Utilisateurs actifs (7 derniers jours)</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-box">
+            <i class="fas fa-file-upload fa-3x text-primary mb-2"></i>
+            <h3>{{ stats.documents_ajoutes_7j || 0 }}</h3>
+            <p class="text-muted">Documents ajoutés (7 derniers jours)</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-box">
+            <i class="fas fa-download fa-3x text-info mb-2"></i>
+            <h3>{{ stats.telechargements_7j || 0 }}</h3>
+            <p class="text-muted">Téléchargements (7 derniers jours)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+  <!-- Rapport Hebdomadaire -->
+  <div *ngIf="rapport" class="mt-4">
+    <div class="modern-card p-4">
+      <h5 class="mb-4 fw-bold">
+        <i class="fas fa-file-alt me-2"></i>Rapport Hebdomadaire
+      </h5>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <div class="rapport-item">
+            <i class="fas fa-plus-circle text-success"></i>
+            <div>
+              <strong>{{ rapport.documents_ajoutes }}</strong>
+              <p class="mb-0 text-muted">Documents Ajoutés</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="rapport-item">
+            <i class="fas fa-edit text-warning"></i>
+            <div>
+              <strong>{{ rapport.documents_modifies }}</strong>
+              <p class="mb-0 text-muted">Documents Modifiés</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="rapport-item">
+            <i class="fas fa-download text-info"></i>
+            <div>
+              <strong>{{ rapport.documents_telecharges }}</strong>
+              <p class="mb-0 text-muted">Téléchargements</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="rapport-item">
+            <i class="fas fa-trash text-danger"></i>
+            <div>
+              <strong>{{ rapport.documents_supprimes }}</strong>
+              <p class="mb-0 text-muted">Documents Supprimés</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

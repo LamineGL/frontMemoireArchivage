@@ -1,0 +1,91 @@
+<div class="employe-wrapper">
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.collapsed]="sidebarCollapsed">
+    <div class="sidebar-header">
+      <div class="logo">
+        <i class="fas fa-archive"></i>
+        <span *ngIf="!sidebarCollapsed">Archivage Olam</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/employe/dashboard" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-tachometer-alt"></i>
+        <span *ngIf="!sidebarCollapsed">Dashboard</span>
+      </a>
+
+      <a routerLink="/employe/mes-documents" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-folder"></i>
+        <span *ngIf="!sidebarCollapsed">Mes Documents</span>
+      </a>
+
+      <a routerLink="/employe/acces" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-lock-open"></i>
+        <span *ngIf="!sidebarCollapsed">Mes Accès</span>
+      </a>
+
+      <a routerLink="/employe/notifications" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-bell"></i>
+        <span *ngIf="!sidebarCollapsed">Notifications</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-collapse" (click)="toggleSidebar()">
+        <i class="fas" [class.fa-chevron-left]="!sidebarCollapsed" [class.fa-chevron-right]="sidebarCollapsed"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content" [class.expanded]="sidebarCollapsed">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="btn-menu" (click)="toggleSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h4 class="page-title mb-0">Espace Employé</h4>
+      </div>
+
+      <div class="topbar-right">
+        <div class="user-menu" *ngIf="currentUser">
+          <div class="user-info">
+            <span class="user-name">{{ currentUser.nom_complet }}</span>
+            <span class="user-role">{{ currentUser.departement }}</span>
+          </div>
+          <div class="dropdown">
+             <button class="btn-user dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <img
+                *ngIf="currentUser?.photo_profil; else defaultAvatar"
+                [src]="'http://127.0.0.1:8000/storage/' + currentUser.photo_profil"
+                class="user-avatar"
+                alt="Photo de profil"
+              />
+              <ng-template #defaultAvatar>
+                <img
+                  [src]="'https://ui-avatars.com/api/?name=' + (currentUser?.nom_complet || 'User') + '&background=8e44ad&color=fff&size=200'"
+                  class="user-avatar"
+                  alt="Avatar"
+                />
+              </ng-template>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" [routerLink]="['/employe/profile']"><i class="fas fa-user me-2"></i>Mon profil</a></li>
+              <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Paramètres</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" (click)="logout()" style="cursor: pointer;">
+                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+              </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="content-area">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

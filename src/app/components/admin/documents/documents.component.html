@@ -1,0 +1,253 @@
+<div class="documents-container fade-in">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div>
+      <h2 class="fw-bold mb-2">
+        <i class="fas fa-file-alt me-2"></i>Gestion des Documents
+      </h2>
+      <p class="text-muted">Gérez tous les documents du système</p>
+    </div>
+    <button class="btn btn-primary btn-modern" (click)="openUploadModal()">
+      <i class="fas fa-cloud-upload-alt me-2"></i>Importer Document
+    </button>
+  </div>
+
+  <!-- Filtres -->
+  <div class="modern-card p-4 mb-4">
+    <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Filtres de recherche</h5>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Rechercher..."
+          [(ngModel)]="filters.search"
+          (keyup.enter)="applyFilters()"
+        >
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" [(ngModel)]="filters.type_document_id">
+          <option value="">Tous les types</option>
+          <option *ngFor="let type of typesDocuments" [value]="type.id">
+            {{ type.libelle_type }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" [(ngModel)]="filters.departement_id">
+          <option value="">Tous les départements</option>
+          <option *ngFor="let dept of departements" [value]="dept.id">
+            {{ dept.nom_departement }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary" (click)="applyFilters()">
+            <i class="fas fa-search me-1"></i>Rechercher
+          </button>
+          <button class="btn btn-secondary" (click)="resetFilters()">
+            <i class="fas fa-redo me-1"></i>Réinitialiser
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Chargement...</span>
+    </div>
+  </div>
+
+  <!-- Liste Documents -->
+  <div *ngIf="!loading" class="row g-4">
+    <div class="col-md-6 col-lg-4" *ngFor="let doc of documents">
+      <div class="document-card modern-card">
+        <div class="document-header">
+          <i class="fas fa-3x" [ngClass]="getFileIcon(doc.mime_type)"></i>
+          <span class="badge bg-primary">v{{ doc.version }}</span>
+        </div>
+        <div class="document-body">
+          <h5 class="document-title">{{ doc.titre }}</h5>
+          <p class="document-description text-muted">
+            {{ doc.description || 'Aucune description' }}
+          </p>
+          <div class="document-meta">
+            <span class="badge bg-info">{{ doc.typeDocument?.libelle_type || 'N/A' }}</span>
+            <span class="badge bg-secondary">{{ doc.departement?.nom_departement || 'N/A' }}</span>
+          </div>
+          <div class="document-info mt-3">
+            <small class="text-muted">
+              <i class="fas fa-user me-1"></i>{{ doc.createur?.nom_complet || 'N/A' }}
+            </small>
+            <br>
+            <small class="text-muted">
+              <i class="fas fa-calendar me-1"></i>{{ formatDate(doc.created_at) }}
+            </small>
+            <br>
+            <small class="text-muted">
+              <i class="fas fa-hdd me-1"></i>{{ formatFileSize(doc.file_size) }}
+            </small>
+          </div>
+        </div>
+        <div class="document-actions">
+          <button class="btn btn-sm btn-outline-primary" (click)="viewDocument(doc)">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-success" (click)="downloadDocument(doc)">
+            <i class="fas fa-download"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" (click)="deleteDocument(doc)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="documents.length === 0" class="col-12">
+      <div class="empty-state text-center py-5">
+        <i class="fas fa-folder-open fa-5x text-muted mb-3"></i>
+        <h4>Aucun document trouvé</h4>
+        <p class="text-muted">Essayez de modifier vos critères de recherche</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Upload -->
+<div class="modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-cloud-upload-alt me-2"></i>Importer un Document
+        </h5>
+        <button type="button" class="btn-close" (click)="closeUploadModal()"></button>
+      </div>
+      <div class="modal-body">
+        <form (ngSubmit)="uploadDocument()">
+          <!-- Titre -->
+          <div class="mb-3">
+            <label class="form-label">Titre du document *</label>
+            <input type="text" class="form-control" [(ngModel)]="uploadForm.titre" name="titre" required>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="uploadForm.description" name="description"></textarea>
+          </div>
+
+          <!-- Type -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Type de document *</label>
+              <select class="form-select" [(ngModel)]="uploadForm.type_document_id" name="type_document_id" required>
+                <option value="">Sélectionner un type</option>
+                <option *ngFor="let type of typesDocuments" [value]="type.id">
+                  {{ type.libelle_type }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Département -->
+            <div class="col-md-6">
+              <label class="form-label">Département *</label>
+              <select class="form-select" [(ngModel)]="uploadForm.departement_id" name="departement_id" required>
+                <option value="">Sélectionner un département</option>
+                <option *ngFor="let dept of departements" [value]="dept.id">
+                  {{ dept.nom_departement }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Mots-clés -->
+          <div class="mb-3">
+            <label class="form-label">Mots-clés (séparés par des virgules)</label>
+            <input type="text" class="form-control" [(ngModel)]="uploadForm.mots_cles" name="mots_cles" placeholder="ex: rapport, mensuel, janvier">
+          </div>
+
+          <!-- Fichier -->
+          <div class="mb-3">
+            <label class="form-label">Fichier *</label>
+            <input type="file" class="form-control" (change)="onFileSelected($event)" required>
+            <small class="text-muted">Formats acceptés : PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, JPG, PNG, ZIP (Max 10 MB)</small>
+          </div>
+
+          <!-- Boutons -->
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" (click)="closeUploadModal()">Annuler</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-upload me-2"></i>Importer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showModal" *ngIf="showModal"></div>
+
+<!-- Modal Détails -->
+<div class="modal fade" [class.show]="showDetailModal" [style.display]="showDetailModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" *ngIf="selectedDocument">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-info-circle me-2"></i>Détails du Document
+        </h5>
+        <button type="button" class="btn-close" (click)="closeDetailModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-section">
+          <h6 class="fw-bold mb-3">Informations générales</h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <strong>Titre:</strong>
+              <p>{{ selectedDocument.titre }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Type:</strong>
+              <p>{{ selectedDocument.typeDocument?.libelle_type }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Département:</strong>
+              <p>{{ selectedDocument.departement?.nom_departement }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Version:</strong>
+              <p>v{{ selectedDocument.version }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Taille:</strong>
+              <p>{{ formatFileSize(selectedDocument.file_size) }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Créé par:</strong>
+              <p>{{ selectedDocument.createur?.nom_complet }}</p>
+            </div>
+            <div class="col-md-12">
+              <strong>Description:</strong>
+              <p>{{ selectedDocument.description || 'Aucune description' }}</p>
+            </div>
+            <div class="col-md-12" *ngIf="selectedDocument.mots_cles">
+              <strong>Mots-clés:</strong>
+              <p>{{ selectedDocument.mots_cles }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" (click)="downloadDocument(selectedDocument)">
+          <i class="fas fa-download me-2"></i>Télécharger
+        </button>
+        <button class="btn btn-secondary" (click)="closeDetailModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showDetailModal" *ngIf="showDetailModal"></div>

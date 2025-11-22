@@ -1,0 +1,19 @@
+/* Modal Signalement */
+.modal-header.bg-warning {
+  background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
+}
+
+.modal-header.bg-warning .btn-close {
+  filter: none;
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.alert-info {
+  background: #e8f4f8;
+  border-color: #b8dce8;
+  color: #31708f;
+}

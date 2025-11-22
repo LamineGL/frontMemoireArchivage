@@ -1,0 +1,264 @@
+<div class="profile-container">
+  <!-- Header -->
+  <div class="profile-header">
+    <div class="header-content">
+      <div class="avatar-large">
+        <img [src]="getPhotoUrl()" [alt]="currentUser?.nom_complet || 'Photo de profil'">
+      </div>
+      <div class="user-details">
+        <h1>{{ currentUser?.nom_complet || 'Utilisateur' }}</h1>
+        <p class="user-email">{{ currentUser?.email || 'email@exemple.com' }}</p>
+        <div class="user-badges">
+          <span class="badge badge-role">{{ getRoleName() }}</span>
+          <span class="badge badge-dept">{{ getDepartementName() }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages-container" *ngIf="successMessage || errorMessage">
+    <div class="alert alert-success" *ngIf="successMessage">
+      <i class="fas fa-check-circle"></i>
+      {{ successMessage }}
+    </div>
+    <div class="alert alert-error" *ngIf="errorMessage">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ errorMessage }}
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-nav">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'info'"
+      (click)="setActiveTab('info')">
+      <i class="fas fa-user"></i>
+      Informations
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'photo'"
+      (click)="setActiveTab('photo')">
+      <i class="fas fa-camera"></i>
+      Photo de profil
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'security'"
+      (click)="setActiveTab('security')">
+      <i class="fas fa-lock"></i>
+      Sécurité
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tabs-content">
+
+    <!-- ========== ONGLET INFORMATIONS ========== -->
+    <div class="tab-panel" *ngIf="activeTab === 'info'">
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fas fa-user-edit"></i> Modifier mes informations</h3>
+          <p>Mettez à jour votre nom et votre email</p>
+        </div>
+        <div class="card-body">
+          <form (ngSubmit)="updateInfo()">
+            <div class="form-group">
+              <label for="nom_complet">
+                <i class="fas fa-user"></i>
+                Nom complet *
+              </label>
+              <input
+                type="text"
+                id="nom_complet"
+                [(ngModel)]="infoForm.nom_complet"
+                name="nom_complet"
+                class="form-control"
+                placeholder="Votre nom complet"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="email">
+                <i class="fas fa-envelope"></i>
+                Email *
+              </label>
+              <input
+                type="email"
+                id="email"
+                [(ngModel)]="infoForm.email"
+                name="email"
+                class="form-control"
+                placeholder="votre.email@exemple.com"
+                required>
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="loading">
+                <i class="fas fa-save"></i>
+                {{ loading ? 'Enregistrement...' : 'Enregistrer les modifications' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== ONGLET PHOTO ========== -->
+    <div class="tab-panel" *ngIf="activeTab === 'photo'">
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fas fa-camera"></i> Photo de profil</h3>
+          <p>Gérez votre photo de profil (JPG, PNG - Max 2 MB)</p>
+        </div>
+        <div class="card-body">
+
+          <!-- Photo actuelle -->
+          <div class="photo-current">
+            <h4>Photo actuelle</h4>
+            <div class="avatar-preview">
+              <img [src]="getPhotoUrl()" [alt]="currentUser?.nom_complet || 'Photo actuelle'">
+            </div>
+            <button
+              class="btn btn-danger btn-sm"
+              (click)="deletePhoto()"
+              *ngIf="currentUser?.photo_profil"
+              [disabled]="loading">
+              <i class="fas fa-trash"></i>
+              Supprimer la photo
+            </button>
+          </div>
+
+          <hr>
+
+          <!-- Upload nouvelle photo -->
+          <div class="photo-upload">
+            <h4>Changer de photo</h4>
+
+            <!-- Preview nouvelle photo -->
+            <div class="photo-preview" *ngIf="photoPreview">
+              <img [src]="photoPreview" alt="Aperçu">
+              <button
+                class="btn btn-secondary btn-sm"
+                (click)="cancelPhotoSelection()">
+                <i class="fas fa-times"></i>
+                Annuler
+              </button>
+            </div>
+
+            <!-- Bouton sélection -->
+            <div class="file-input-wrapper" *ngIf="!selectedPhoto">
+              <label for="photo_profil" class="btn btn-outline">
+                <i class="fas fa-upload"></i>
+                Choisir une photo
+              </label>
+              <input
+                type="file"
+                id="photo_profil"
+                (change)="onPhotoSelected($event)"
+                accept="image/*"
+                style="display: none;">
+            </div>
+
+            <!-- Bouton upload -->
+            <button
+              class="btn btn-primary"
+              (click)="uploadPhoto()"
+              *ngIf="selectedPhoto"
+              [disabled]="loading">
+              <i class="fas fa-cloud-upload-alt"></i>
+              {{ loading ? 'Upload en cours...' : 'Enregistrer la nouvelle photo' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== ONGLET SÉCURITÉ ========== -->
+    <div class="tab-panel" *ngIf="activeTab === 'security'">
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fas fa-lock"></i> Changer le mot de passe</h3>
+          <p>Modifiez votre mot de passe (minimum 8 caractères)</p>
+        </div>
+        <div class="card-body">
+          <form (ngSubmit)="changePassword()">
+
+            <div class="form-group">
+              <label for="current_password">
+                <i class="fas fa-key"></i>
+                Mot de passe actuel *
+              </label>
+              <input
+                type="password"
+                id="current_password"
+                [(ngModel)]="passwordForm.current_password"
+                name="current_password"
+                class="form-control"
+                placeholder="Votre mot de passe actuel"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="password">
+                <i class="fas fa-lock"></i>
+                Nouveau mot de passe *
+              </label>
+              <input
+                type="password"
+                id="password"
+                [(ngModel)]="passwordForm.password"
+                name="password"
+                class="form-control"
+                placeholder="Minimum 8 caractères"
+                required>
+              <small class="form-hint">
+                <i class="fas fa-info-circle"></i>
+                Utilisez au moins 8 caractères avec lettres et chiffres
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label for="password_confirmation">
+                <i class="fas fa-check-circle"></i>
+                Confirmer le mot de passe *
+              </label>
+              <input
+                type="password"
+                id="password_confirmation"
+                [(ngModel)]="passwordForm.password_confirmation"
+                name="password_confirmation"
+                class="form-control"
+                placeholder="Retapez le nouveau mot de passe"
+                required>
+            </div>
+
+            <div class="security-notice">
+              <i class="fas fa-shield-alt"></i>
+              <div>
+                <strong>Note de sécurité</strong>
+                <p>Un email de confirmation sera envoyé après la modification de votre mot de passe.</p>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="loading">
+                <i class="fas fa-save"></i>
+                {{ loading ? 'Modification...' : 'Changer le mot de passe' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

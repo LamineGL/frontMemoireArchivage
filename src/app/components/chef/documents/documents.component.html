@@ -1,0 +1,415 @@
+<div class="documents-container fade-in">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div>
+      <h2 class="fw-bold">
+        <i class="fas fa-file-alt me-2"></i>Gestion des Documents
+      </h2>
+      <p class="text-muted">Gérez les documents de votre département</p>
+    </div>
+    <button class="btn btn-primary btn-modern" (click)="openCreateModal()">
+      <i class="fas fa-cloud-upload-alt me-2"></i>Ajouter Document
+    </button>
+  </div>
+
+  <!-- Filtres -->
+  <div class="modern-card p-4 mb-4">
+    <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Rechercher</h5>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Rechercher un document..."
+          [(ngModel)]="filters.search"
+          (keyup.enter)="applyFilters()"
+        >
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" [(ngModel)]="filters.type_document_id">
+          <option value="">Tous les types</option>
+          <option *ngFor="let type of typesDocuments" [value]="type.id">
+            {{ type.libelle_type }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input type="date" class="form-control" [(ngModel)]="filters.date_debut" placeholder="Date début">
+      </div>
+      <div class="col-md-3">
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary flex-fill" (click)="applyFilters()">
+            <i class="fas fa-search me-1"></i>Rechercher
+          </button>
+          <button class="btn btn-secondary" (click)="resetFilters()">
+            <i class="fas fa-redo"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Chargement...</span>
+    </div>
+  </div>
+
+  <!-- Liste Documents -->
+  <div *ngIf="!loading" class="row g-4">
+    <div class="col-md-6 col-lg-4" *ngFor="let doc of documents">
+      <div class="document-card modern-card">
+        <div class="document-header">
+          <i class="fas fa-3x" [ngClass]="getFileIcon(doc.mime_type)"></i>
+          <div class="document-badges">
+            <span class="badge bg-primary">v{{ doc.version }}</span>
+            <span class="badge bg-success" *ngIf="doc.user_createur_id === currentUser?.id">
+              <i class="fas fa-star"></i> Moi
+            </span>
+          </div>
+        </div>
+        <div class="document-body">
+          <h5 class="document-title">{{ doc.titre }}</h5>
+          <p class="document-description text-muted">
+            {{ doc.description || 'Aucune description' }}
+          </p>
+          <div class="document-meta mb-2">
+            <span class="badge bg-info">{{ doc.typeDocument?.libelle_type || 'N/A' }}</span>
+          </div>
+          <div class="document-info">
+            <small class="text-muted d-block">
+              <i class="fas fa-user me-1"></i>{{ doc.createur?.nom_complet || 'N/A' }}
+            </small>
+            <small class="text-muted d-block">
+              <i class="fas fa-calendar me-1"></i>{{ formatDate(doc.created_at) }}
+            </small>
+            <small class="text-muted d-block">
+              <i class="fas fa-hdd me-1"></i>{{ formatFileSize(doc.file_size) }}
+            </small>
+          </div>
+        </div>
+        <div class="document-actions">
+          <button class="btn btn-sm btn-outline-primary" (click)="viewDocument(doc)" title="Voir détails">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-success" (click)="downloadDocument(doc)" title="Télécharger">
+            <i class="fas fa-download"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-info" (click)="openPermissionsModal(doc)" title="Gérer les accès">
+            <i class="fas fa-user-lock"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-warning" (click)="openEditModal(doc)" title="Modifier">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" (click)="deleteDocument(doc)" title="Supprimer">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="documents.length === 0" class="col-12">
+      <div class="empty-state text-center py-5">
+        <i class="fas fa-folder-open fa-5x text-muted mb-3"></i>
+        <h4>Aucun document trouvé</h4>
+        <p class="text-muted">Commencez par ajouter un document</p>
+        <button class="btn btn-primary btn-modern mt-3" (click)="openCreateModal()">
+          <i class="fas fa-plus me-2"></i>Ajouter un document
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas" [class.fa-plus]="modalMode === 'create'" [class.fa-edit]="modalMode === 'edit'"></i>
+          {{ modalMode === 'create' ? 'Ajouter un Document' : 'Modifier le Document' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <form (ngSubmit)="onSubmit()">
+          <!-- Titre -->
+          <div class="mb-3">
+            <label class="form-label">Titre du document *</label>
+            <input type="text" class="form-control" [(ngModel)]="uploadForm.titre" name="titre" required>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="uploadForm.description" name="description"></textarea>
+          </div>
+
+          <!-- Type -->
+          <div class="mb-3">
+            <label class="form-label">Type de document *</label>
+            <select class="form-select" [(ngModel)]="uploadForm.type_document_id" name="type_document_id" required>
+              <option value="">Sélectionner un type</option>
+              <option *ngFor="let type of typesDocuments" [value]="type.id">
+                {{ type.libelle_type }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Mots-clés -->
+          <div class="mb-3">
+            <label class="form-label">Mots-clés (séparés par des virgules)</label>
+            <input type="text" class="form-control" [(ngModel)]="uploadForm.mots_cles" name="mots_cles"
+                   placeholder="ex: rapport, mensuel, janvier">
+          </div>
+
+          <!-- Commentaire (si modification) -->
+          <div class="mb-3" *ngIf="modalMode === 'edit'">
+            <label class="form-label">Commentaire de modification</label>
+            <input type="text" class="form-control" [(ngModel)]="uploadForm.commentaire" name="commentaire"
+                   placeholder="Décrivez les changements effectués">
+          </div>
+
+          <!-- Fichier -->
+          <div class="mb-3">
+            <label class="form-label">
+              Fichier {{ modalMode === 'edit' ? '(laisser vide pour ne pas changer)' : '*' }}
+            </label>
+            <input type="file" class="form-control" (change)="onFileSelected($event)"
+                   [required]="modalMode === 'create'">
+            <small class="text-muted">
+              Formats : PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, JPG, PNG, ZIP (Max 10 MB)
+            </small>
+          </div>
+
+          <!-- Boutons -->
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas" [class.fa-save]="modalMode === 'edit'" [class.fa-upload]="modalMode === 'create'"></i>
+              {{ modalMode === 'create' ? 'Ajouter' : 'Enregistrer' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showModal" *ngIf="showModal"></div>
+
+<!-- Modal Détails -->
+<div class="modal fade" [class.show]="showDetailModal" [style.display]="showDetailModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" *ngIf="selectedDocument">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-info-circle me-2"></i>Détails du Document
+        </h5>
+        <button type="button" class="btn-close" (click)="closeDetailModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center mb-4">
+          <i class="fas fa-5x" [ngClass]="getFileIcon(selectedDocument.mime_type)"></i>
+        </div>
+        <div class="detail-section">
+          <h6 class="fw-bold mb-3">Informations générales</h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <strong>Titre:</strong>
+              <p>{{ selectedDocument.titre }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Type:</strong>
+              <p>{{ selectedDocument.typeDocument?.libelle_type }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Version:</strong>
+              <p>v{{ selectedDocument.version }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Taille:</strong>
+              <p>{{ formatFileSize(selectedDocument.file_size) }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Créé par:</strong>
+              <p>{{ selectedDocument.createur?.nom_complet }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Date:</strong>
+              <p>{{ formatDate(selectedDocument.created_at) }}</p>
+            </div>
+            <div class="col-md-12">
+              <strong>Description:</strong>
+              <p>{{ selectedDocument.description || 'Aucune description' }}</p>
+            </div>
+            <div class="col-md-12" *ngIf="selectedDocument.mots_cles">
+              <strong>Mots-clés:</strong>
+              <p>{{ selectedDocument.mots_cles }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" (click)="downloadDocument(selectedDocument)">
+          <i class="fas fa-download me-2"></i>Télécharger
+        </button>
+        <button class="btn btn-secondary" (click)="closeDetailModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Gestion des Permissions -->
+<div class="modal fade" [class.show]="showPermissionsModal" [style.display]="showPermissionsModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" *ngIf="selectedDocument">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="fas fa-user-lock me-2"></i>
+          Gérer les accès - {{ selectedDocument.titre }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closePermissionsModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Informations du document -->
+        <div class="alert alert-info mb-4">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Document :</strong> {{ selectedDocument.titre }} (v{{ selectedDocument.version }})
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="!employes || employes.length === 0" class="text-center py-4">
+          <div class="spinner-border text-primary"></div>
+          <p class="mt-2">Chargement des employés...</p>
+        </div>
+
+        <!-- Liste des employés -->
+        <div *ngIf="employes && employes.length > 0">
+          <h6 class="mb-3">
+            <i class="fas fa-users me-2"></i>
+            Sélectionnez les employés et définissez leurs permissions
+          </h6>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 50px;">
+                    <input type="checkbox" class="form-check-input"
+                           (change)="toggleAllEmployees($event)">
+                  </th>
+                  <th>Employé</th>
+                  <th class="text-center" style="width: 100px;">
+                    <i class="fas fa-eye"></i><br>
+                    <small>Lire</small>
+                  </th>
+                  <th class="text-center" style="width: 100px;">
+                    <i class="fas fa-download"></i><br>
+                    <small>Télécharger</small>
+                  </th>
+                  <th class="text-center" style="width: 100px;">
+                    <i class="fas fa-edit"></i><br>
+                    <small>Modifier</small>
+                  </th>
+                  <th class="text-center" style="width: 100px;">
+                    <i class="fas fa-trash"></i><br>
+                    <small>Supprimer</small>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let emp of employes"
+                    [class.table-active]="permissionsForm[emp.id]?.selected">
+                  <!-- Checkbox sélection -->
+                  <td>
+                    <input type="checkbox"
+                           class="form-check-input"
+                           [(ngModel)]="permissionsForm[emp.id].selected">
+                  </td>
+
+                  <!-- Nom de l'employé -->
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-circle me-2">
+                        {{ emp.nom?.charAt(0) }}{{ emp.prenom?.charAt(0) }}
+                      </div>
+                      <div>
+                        <strong>{{ emp.nom }} {{ emp.prenom }}</strong>
+                        <br>
+                        <small class="text-muted">{{ emp.email }}</small>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Permission Lire -->
+                  <td class="text-center">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           [(ngModel)]="permissionsForm[emp.id].peut_lire"
+                           [disabled]="!permissionsForm[emp.id].selected">
+                  </td>
+
+                  <!-- Permission Télécharger -->
+                  <td class="text-center">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           [(ngModel)]="permissionsForm[emp.id].peut_telecharger"
+                           [disabled]="!permissionsForm[emp.id].selected">
+                  </td>
+
+                  <!-- Permission Modifier -->
+                  <td class="text-center">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           [(ngModel)]="permissionsForm[emp.id].peut_modifier"
+                           [disabled]="!permissionsForm[emp.id].selected">
+                  </td>
+
+                  <!-- Permission Supprimer -->
+                  <td class="text-center">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           [(ngModel)]="permissionsForm[emp.id].peut_supprimer"
+                           [disabled]="!permissionsForm[emp.id].selected">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Actions prédéfinies -->
+          <div class="mt-3">
+            <h6>Actions rapides :</h6>
+            <div class="btn-group" role="group">
+              <button class="btn btn-sm btn-outline-primary" (click)="setAllPermissions('lecture')">
+                <i class="fas fa-eye me-1"></i> Lecture seule
+              </button>
+              <button class="btn btn-sm btn-outline-success" (click)="setAllPermissions('complet')">
+                <i class="fas fa-check-circle me-1"></i> Accès complet
+              </button>
+              <button class="btn btn-sm btn-outline-danger" (click)="setAllPermissions('aucun')">
+                <i class="fas fa-times-circle me-1"></i> Révoquer tout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closePermissionsModal()">
+          <i class="fas fa-times me-2"></i>Annuler
+        </button>
+        <button class="btn btn-primary" (click)="savePermissions()">
+          <i class="fas fa-save me-2"></i>Enregistrer les permissions
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showPermissionsModal" *ngIf="showPermissionsModal"></div>
+<div class="modal-backdrop fade" [class.show]="showDetailModal" *ngIf="showDetailModal"></div>

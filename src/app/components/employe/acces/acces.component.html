@@ -1,0 +1,169 @@
+<div class="acces-container">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div>
+      <h2 class="fw-bold">
+        <i class="fas fa-folder-open me-2"></i>Documents Accessibles
+      </h2>
+      <p class="text-muted">Documents partagés avec vous</p>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Chargement...</span>
+    </div>
+    <p class="mt-3">Chargement de vos accès...</p>
+  </div>
+
+  <!-- Liste des accès -->
+  <div *ngIf="!loading" class="row g-4">
+    <!-- Document Card -->
+    <div class="col-md-6 col-lg-4" *ngFor="let acces of mesAcces">
+      <div class="document-card modern-card">
+        <div class="document-header">
+          <i class="fas fa-3x" [ngClass]="getFileIcon(acces.document?.mime_type)"></i>
+          <div class="document-badges">
+            <span class="badge bg-primary">v{{ acces.document?.version }}</span>
+          </div>
+        </div>
+
+        <div class="document-body">
+          <h5 class="document-title">{{ acces.document?.titre }}</h5>
+          <p class="document-description text-muted">
+            {{ acces.document?.description || 'Aucune description' }}
+          </p>
+
+          <div class="document-meta mb-2">
+            <span class="badge bg-info">
+              {{ acces.document?.typeDocument?.libelle_type || 'N/A' }}
+            </span>
+          </div>
+
+          <div class="document-info mb-3">
+            <small class="text-muted d-block">
+              <i class="fas fa-user me-1"></i>{{ acces.document?.createur?.nom_complet || 'N/A' }}
+            </small>
+            <small class="text-muted d-block">
+              <i class="fas fa-calendar me-1"></i>{{ formatDate(acces.document?.created_at) }}
+            </small>
+            <small class="text-muted d-block">
+              <i class="fas fa-hdd me-1"></i>{{ formatFileSize(acces.document?.file_size) }}
+            </small>
+          </div>
+
+          <!-- Permissions -->
+          <div class="permissions-info">
+            <h6 class="text-muted mb-2" style="font-size: 0.85rem;">
+              <i class="fas fa-lock me-1"></i>Vos permissions :
+            </h6>
+            <div class="d-flex flex-wrap gap-2">
+              <span class="badge" [class.bg-success]="acces.peut_lire" [class.bg-secondary]="!acces.peut_lire">
+                <i class="fas fa-eye me-1"></i>Lecture
+              </span>
+              <span class="badge" [class.bg-success]="acces.peut_telecharger" [class.bg-secondary]="!acces.peut_telecharger">
+                <i class="fas fa-download me-1"></i>Télécharger
+              </span>
+              <span class="badge" [class.bg-success]="acces.peut_modifier" [class.bg-secondary]="!acces.peut_modifier">
+                <i class="fas fa-edit me-1"></i>Modifier
+              </span>
+              <span class="badge" [class.bg-success]="acces.peut_supprimer" [class.bg-secondary]="!acces.peut_supprimer">
+                <i class="fas fa-trash me-1"></i>Supprimer
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="document-actions">
+          <button
+            class="btn btn-sm btn-outline-primary"
+            (click)="viewDetails(acces)"
+            title="Voir détails"
+            [disabled]="!acces.peut_lire"
+          >
+            <i class="fas fa-eye"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-outline-success"
+            (click)="downloadDocument(acces)"
+            title="Télécharger"
+            [disabled]="!acces.peut_telecharger"
+          >
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="mesAcces.length === 0" class="col-12">
+      <div class="empty-state text-center py-5">
+        <i class="fas fa-folder-open fa-5x text-muted mb-3"></i>
+        <h4>Aucun document accessible</h4>
+        <p class="text-muted">Aucun document n'a été partagé avec vous pour le moment</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Détails -->
+<div class="modal fade" [class.show]="showDetailModal" [style.display]="showDetailModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" *ngIf="selectedDocument">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-info-circle me-2"></i>Détails du Document
+        </h5>
+        <button type="button" class="btn-close" (click)="closeDetailModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center mb-4">
+          <i class="fas fa-5x" [ngClass]="getFileIcon(selectedDocument.mime_type)"></i>
+        </div>
+
+        <div class="detail-section">
+          <h6 class="fw-bold mb-3">Informations générales</h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <strong>Titre:</strong>
+              <p>{{ selectedDocument.titre }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Type:</strong>
+              <p>{{ selectedDocument.typeDocument?.libelle_type }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Version:</strong>
+              <p>v{{ selectedDocument.version }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Taille:</strong>
+              <p>{{ formatFileSize(selectedDocument.file_size) }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Créé par:</strong>
+              <p>{{ selectedDocument.createur?.nom_complet }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Date:</strong>
+              <p>{{ formatDate(selectedDocument.created_at) }}</p>
+            </div>
+            <div class="col-md-12">
+              <strong>Description:</strong>
+              <p>{{ selectedDocument.description || 'Aucune description' }}</p>
+            </div>
+            <div class="col-md-12" *ngIf="selectedDocument.mots_cles">
+              <strong>Mots-clés:</strong>
+              <p>{{ selectedDocument.mots_cles }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeDetailModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showDetailModal" *ngIf="showDetailModal"></div>

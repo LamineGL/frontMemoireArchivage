@@ -1,0 +1,308 @@
+<div class="documents-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2 class="page-title">
+        <i class="fas fa-folder me-2"></i>
+        Mes Documents
+      </h2>
+      <p class="text-muted mb-0">{{ documents.length }} document(s) archivé(s)</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="openAddModal()">
+        <i class="fas fa-plus me-2"></i>
+        Archiver un document
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtres et recherche -->
+  <div class="filters-section">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Rechercher un document..."
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="searchDocuments()"
+          />
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" [(ngModel)]="selectedType" (change)="searchDocuments()">
+          <option value="">Tous les types</option>
+          <option *ngFor="let type of types" [value]="type.id">{{ type.libelle_type }}</option>
+        </select>
+      </div>
+     
+      <div class="col-md-2">
+        <button class="btn btn-outline-secondary w-100" (click)="resetFilters()">
+          <i class="fas fa-redo me-2"></i>
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-3 text-muted">Chargement...</p>
+  </div>
+
+  <!-- Liste des documents -->
+  <div *ngIf="!loading" class="documents-grid">
+    <!-- Aucun document -->
+    <div *ngIf="documents.length === 0" class="empty-state">
+      <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+      <h5>Aucun document trouvé</h5>
+      <p class="text-muted">Commencez par archiver votre premier document</p>
+      <button class="btn btn-primary mt-3" (click)="openAddModal()">
+        <i class="fas fa-plus me-2"></i>
+        Archiver un document
+      </button>
+    </div>
+
+    <!-- Documents -->
+    <div *ngFor="let doc of documents" class="document-card">
+      <div class="doc-header">
+        <div class="doc-icon">
+          <i class="fas fa-file-pdf" *ngIf="doc.mime_type?.includes('pdf')"></i>
+          <i class="fas fa-file-word" *ngIf="doc.mime_type?.includes('word') || doc.mime_type?.includes('document')"></i>
+          <i class="fas fa-file-excel" *ngIf="doc.mime_type?.includes('excel') || doc.mime_type?.includes('sheet')"></i>
+          <i class="fas fa-file-image" *ngIf="doc.mime_type?.includes('image')"></i>
+          <i class="fas fa-file-alt" *ngIf="!doc.mime_type?.includes('pdf') && !doc.mime_type?.includes('word') && !doc.mime_type?.includes('excel') && !doc.mime_type?.includes('image')"></i>
+        </div>
+        <span class="version-badge">v{{ doc.version }}</span>
+      </div>
+
+      <div class="doc-body">
+        <h5 class="doc-title" title="{{ doc.titre }}">{{ doc.titre }}</h5>
+        <p class="doc-description" *ngIf="doc.description">{{ doc.description }}</p>
+
+        <div class="doc-meta">
+          <span class="meta-item">
+            <i class="fas fa-tag"></i>
+            {{ doc.typeDocument?.libelle_type || 'N/A' }}
+          </span>
+          <span class="meta-item">
+            <i class="fas fa-building"></i>
+            {{ doc.departement?.nom_departement || 'N/A' }}
+          </span>
+          <span class="meta-item">
+            <i class="fas fa-hdd"></i>
+            {{ formatFileSize(doc.file_size) }}
+          </span>
+        </div>
+
+        <div class="doc-date">
+          <i class="fas fa-clock"></i>
+          {{ formatDate(doc.created_at) }}
+        </div>
+      </div>
+
+      <div class="doc-actions">
+        <button class="btn btn-sm btn-info" (click)="viewDetails(doc)" title="Détails">
+          <i class="fas fa-eye"></i>
+        </button>
+        <button class="btn btn-sm btn-success" (click)="downloadDocument(doc)" title="Télécharger">
+          <i class="fas fa-download"></i>
+        </button>
+        <button class="btn btn-sm btn-warning" (click)="openEditModal(doc)" title="Modifier">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn btn-sm btn-danger" (click)="deleteDocument(doc)" title="Supprimer">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ajouter/Modifier -->
+<div class="modal" [class.show]="showModal" *ngIf="showModal">
+  <div class="modal-backdrop" (click)="closeModal()"></div>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas" [class.fa-plus]="!isEditMode" [class.fa-edit]="isEditMode"></i>
+          {{ isEditMode ? 'Modifier le document' : 'Archiver un nouveau document' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Titre <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="documentForm.titre"
+              name="titre"
+              placeholder="Ex: Rapport mensuel janvier 2025"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              [(ngModel)]="documentForm.description"
+              name="description"
+              placeholder="Description du document..."
+            ></textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Type de document <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="documentForm.type_document_id" name="type">
+                <option value="">Sélectionner un type</option>
+                <option *ngFor="let type of types" [value]="type.id">{{ type.libelle_type }}</option>
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Département <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                [(ngModel)]="documentForm.departement_id"
+                name="departement"
+                disabled
+              >
+                <option *ngFor="let dept of departements" [value]="dept.id">
+                  {{ dept.nom_departement }}
+                </option>
+              </select>
+              <small class="form-text text-muted">
+                <i class="fas fa-lock me-1"></i>
+                Votre département est automatiquement sélectionné
+              </small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Mots-clés</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="documentForm.mots_cles"
+              name="mots_cles"
+              placeholder="Ex: rapport, janvier, finances"
+            />
+            <small class="form-text text-muted">Séparez les mots-clés par des virgules</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">
+              Fichier
+              <span class="text-danger" *ngIf="!isEditMode">*</span>
+              <span class="text-muted" *ngIf="isEditMode">(optionnel)</span>
+            </label>
+            <input
+              type="file"
+              class="form-control"
+              (change)="onFileSelected($event)"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.txt,.zip"
+            />
+            <small class="form-text text-muted">
+              Formats acceptés: PDF, Word, Excel, PowerPoint, Images, ZIP (Max: 10 Mo)
+            </small>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="submitForm()" [disabled]="loading">
+          <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+          {{ isEditMode ? 'Modifier' : 'Archiver' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Détails -->
+<div class="modal" [class.show]="showDetailModal" *ngIf="showDetailModal && selectedDocument">
+  <div class="modal-backdrop" (click)="closeDetailModal()"></div>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-file-alt me-2"></i>
+          Détails du document
+        </h5>
+        <button type="button" class="btn-close" (click)="closeDetailModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-section">
+          <h6><i class="fas fa-info-circle me-2"></i>Informations générales</h6>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <strong>Titre:</strong>
+              <span>{{ selectedDocument.titre }}</span>
+            </div>
+            <div class="detail-item">
+              <strong>Type:</strong>
+              <span>{{ selectedDocument.typeDocument?.libelle_type }}</span>
+            </div>
+            <div class="detail-item">
+              <strong>Département:</strong>
+              <span>{{ selectedDocument.departement?.nom_departement }}</span>
+            </div>
+            <div class="detail-item">
+              <strong>Version:</strong>
+              <span>v{{ selectedDocument.version }}</span>
+            </div>
+            <div class="detail-item">
+              <strong>Taille:</strong>
+              <span>{{ formatFileSize(selectedDocument.file_size) }}</span>
+            </div>
+            <div class="detail-item">
+              <strong>Format:</strong>
+              <span>{{ selectedDocument.mime_type }}</span>
+            </div>
+            <div class="detail-item">
+              <strong>Créé le:</strong>
+              <span>{{ formatDate(selectedDocument.created_at) }}</span>
+            </div>
+            <div class="detail-item">
+              <strong>Créé par:</strong>
+              <span>{{ selectedDocument.createur?.nom_complet || 'Vous' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedDocument.description">
+          <h6><i class="fas fa-align-left me-2"></i>Description</h6>
+          <p>{{ selectedDocument.description }}</p>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedDocument.mots_cles">
+          <h6><i class="fas fa-tags me-2"></i>Mots-clés</h6>
+          <div class="tags-container">
+            <span class="tag" *ngFor="let tag of selectedDocument.mots_cles.split(',')">
+              {{ tag.trim() }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeDetailModal()">Fermer</button>
+        <button type="button" class="btn btn-success" (click)="downloadDocument(selectedDocument)">
+          <i class="fas fa-download me-2"></i>
+          Télécharger
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

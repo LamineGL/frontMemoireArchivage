@@ -1,0 +1,225 @@
+<div class="employes-container fade-in">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div>
+      <h2 class="fw-bold">
+        <i class="fas fa-users me-2"></i>Gestion des Employés
+      </h2>
+      <p class="text-muted">Employés de {{ currentUser?.departement }}</p>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-success" role="status">
+      <span class="visually-hidden">Chargement...</span>
+    </div>
+  </div>
+
+  <!-- Liste Employés -->
+  <div *ngIf="!loading" class="row g-4">
+    <div class="col-md-6 col-lg-4" *ngFor="let employe of employes">
+      <div class="employe-card modern-card">
+        <div class="employe-header">
+          <i class="fas fa-user-circle fa-5x"></i>
+          <span class="badge" [ngClass]="{
+            'bg-success': employe.statut === 'actif',
+            'bg-secondary': employe.statut === 'inactif'
+          }">
+            {{ employe.statut }}
+          </span>
+        </div>
+        <div class="employe-body">
+          <h5 class="employe-name">{{ employe.nom_complet }}</h5>
+          <p class="employe-email">
+            <i class="fas fa-envelope me-2"></i>{{ employe.email }}
+          </p>
+          <div class="employe-info">
+            <span class="badge bg-info">{{ getRoleName(employe.role_id) }}</span>
+          </div>
+          <small class="text-muted d-block mt-2">
+            <i class="fas fa-calendar me-1"></i>Créé le {{ formatDate(employe.created_at) }}
+          </small>
+        </div>
+        <div class="employe-actions">
+          <button class="btn btn-sm btn-outline-primary" (click)="viewEmploye(employe)">
+            <i class="fas fa-eye me-1"></i>Détails
+          </button>
+          <!-- ✅ MODIFIÉ : Bouton Signaler au lieu de Désactiver -->
+          <button class="btn btn-sm btn-outline-warning" (click)="openSignalModal(employe)">
+            <i class="fas fa-flag me-1"></i>Signaler
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="employes.length === 0" class="col-12">
+      <div class="empty-state text-center py-5">
+        <i class="fas fa-users fa-5x text-muted mb-3"></i>
+        <h4>Aucun employé trouvé</h4>
+        <p class="text-muted">Votre département ne contient aucun employé pour le moment</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Détails Employé -->
+<div class="modal fade" [class.show]="showDetailModal" [style.display]="showDetailModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" *ngIf="selectedEmploye">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-user-circle me-2"></i>Profil de {{ selectedEmploye.nom_complet }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeDetailModal()"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Informations personnelles -->
+        <div class="detail-section mb-4">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-info-circle me-2"></i>Informations Personnelles
+          </h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <strong>Nom complet:</strong>
+              <p>{{ selectedEmploye.nom_complet }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Email:</strong>
+              <p>{{ selectedEmploye.email }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong>Rôle:</strong>
+              <p><span class="badge bg-info">{{ getRoleName(selectedEmploye.role_id) }}</span></p>
+            </div>
+            <div class="col-md-6">
+              <strong>Statut:</strong>
+              <p>
+                <span class="badge" [ngClass]="{
+                  'bg-success': selectedEmploye.statut === 'actif',
+                  'bg-secondary': selectedEmploye.statut === 'inactif'
+                }">
+                  {{ selectedEmploye.statut }}
+                </span>
+              </p>
+            </div>
+            <div class="col-md-12">
+              <strong>Membre depuis:</strong>
+              <p>{{ formatDate(selectedEmploye.created_at) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistiques d'activité -->
+        <div class="detail-section">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-chart-bar me-2"></i>Statistiques d'Activité
+          </h6>
+          <div class="row g-3">
+            <div class="col-md-3">
+              <div class="stat-box text-center">
+                <i class="fas fa-file fa-2x text-primary mb-2"></i>
+                <h4>{{ employeStats.documents_crees || 0 }}</h4>
+                <small class="text-muted">Documents créés</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-box text-center">
+                <i class="fas fa-edit fa-2x text-warning mb-2"></i>
+                <h4>{{ employeStats.documents_modifies || 0 }}</h4>
+                <small class="text-muted">Modifications</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-box text-center">
+                <i class="fas fa-download fa-2x text-success mb-2"></i>
+                <h4>{{ employeStats.telechargements || 0 }}</h4>
+                <small class="text-muted">Téléchargements</small>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-box text-center">
+                <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                <h4>{{ formatDate(employeStats.derniere_activite) }}</h4>
+                <small class="text-muted">Dernière activité</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <!-- ✅ MODIFIÉ : Bouton Signaler au lieu de Désactiver -->
+        <button class="btn btn-warning" (click)="closeDetailModal(); openSignalModal(selectedEmploye)">
+          <i class="fas fa-flag me-1"></i>Signaler à l'Admin
+        </button>
+        <button class="btn btn-secondary" (click)="closeDetailModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showDetailModal" *ngIf="showDetailModal"></div>
+
+<!-- ✅ NOUVEAU : Modal Signalement -->
+<div class="modal fade" [class.show]="showSignalModal" [style.display]="showSignalModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" *ngIf="selectedEmploye">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title">
+          <i class="fas fa-flag me-2"></i>Signaler un Employé à l'Administrateur
+        </h5>
+        <button type="button" class="btn-close" (click)="closeSignalModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Information :</strong> Ce signalement sera envoyé à l'administrateur qui prendra les mesures nécessaires.
+        </div>
+
+        <div class="mb-3">
+          <strong>Employé concerné :</strong>
+          <p class="text-muted">{{ selectedEmploye.nom_complet }} ({{ selectedEmploye.email }})</p>
+        </div>
+
+        <form (ngSubmit)="submitSignalement()">
+          <!-- Motif -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Motif du signalement *</label>
+            <select class="form-select" [(ngModel)]="signalementForm.motif" name="motif" required>
+              <option value="">Sélectionner un motif</option>
+              <option value="il archive trop de documents qui ne sont pas de l entreprise">il archive trop de documents qui ne sont pas de l entreprise</option>
+              <option value="non_respect_procedures">non_respect_procedures</option>
+              <option value="inactivite_prolongee">inactivite_prolongee</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+
+          <!-- Détails -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Détails du signalement *</label>
+            <textarea
+              class="form-control"
+              rows="4"
+              [(ngModel)]="signalementForm.details"
+              name="details"
+              placeholder="Décrivez en détail la situation qui justifie ce signalement..."
+              required
+            ></textarea>
+            <small class="text-muted">Minimum 20 caractères</small>
+          </div>
+
+          <!-- Boutons -->
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" (click)="closeSignalModal()">
+              Annuler
+            </button>
+            <button type="submit" class="btn btn-warning" [disabled]="!signalementForm.motif || !signalementForm.details || signalementForm.details.length < 20">
+              <i class="fas fa-paper-plane me-1"></i>Envoyer le Signalement
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showSignalModal" *ngIf="showSignalModal"></div>
