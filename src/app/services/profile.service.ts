@@ -9,7 +9,7 @@ import {
   PhotoDeleteResponse,
   PasswordChangeResponse
 } from '../models/profile.model';
-import { environment } from '../environments/environment';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
