@@ -40,4 +40,11 @@ export class AdminLayoutComponent implements OnInit {
       });
     }
   }
+
+  getUserRole(user: User | null): string {
+    if (!user || !user.role) return '';
+    return typeof user.role === 'string'
+      ? user.role
+      : user.role.nom_role;
+  }
 }

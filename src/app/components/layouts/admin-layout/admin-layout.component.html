@@ -9,10 +9,14 @@
     </div>
 
     <nav class="sidebar-nav">
-      <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-item">
-        <i class="fas fa-tachometer-alt"></i>
+      <a routerLink="/admin/statistiques" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-chart-bar"></i>
         <span *ngIf="!sidebarCollapsed">Dashboard</span>
       </a>
+      <!-- <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-tachometer-alt"></i>
+        <span *ngIf="!sidebarCollapsed">Dashboard</span>
+      </a> -->
 
       <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
         <i class="fas fa-users"></i>
@@ -34,10 +38,7 @@
         <span *ngIf="!sidebarCollapsed">Notifications</span>
       </a>
 
-      <a routerLink="/admin/statistiques" routerLinkActive="active" class="nav-item">
-        <i class="fas fa-chart-bar"></i>
-        <span *ngIf="!sidebarCollapsed">Statistiques</span>
-      </a>
+
     </nav>
 
     <div class="sidebar-footer">
@@ -62,7 +63,7 @@
         <div class="user-menu" *ngIf="currentUser">
           <div class="user-info">
             <span class="user-name">{{ currentUser.nom_complet }}</span>
-            <span class="user-role">{{ currentUser.role }}</span>
+            <span class="user-role">{{ getUserRole(currentUser) }}</span>
           </div>
           <div class="dropdown">
             <button class="btn-user dropdown-toggle" type="button" data-bs-toggle="dropdown">

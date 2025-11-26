@@ -25,6 +25,12 @@ export class EmployeLayoutComponent implements OnInit {
   toggleSidebar(): void {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
+  getUserRole(user: User | null): string {
+    if (!user || !user.role) return '';
+    return typeof user.role === 'string'
+      ? user.role
+      : user.role.nom_role;
+  }
 
   logout(): void {
     if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {

@@ -20,7 +20,7 @@ export interface User {
 })
 export class UserService {
   //private apiUrl = 'http://127.0.0.1:8000/api/users';
-  private apiUrl = `${environment.apiUrl}/type-documents`;
+  private apiUrl = `${environment.apiUrl}/users`;
 
   constructor(private http: HttpClient) { }
 
@@ -47,4 +47,5 @@ export class UserService {
    getEmployesDepartement(): Observable<User[]> {
     return this.http.get<User[]>(`${this.apiUrl}/departement/employes`);
   }
+  
 }

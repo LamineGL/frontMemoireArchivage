@@ -51,7 +51,7 @@
       <div class="topbar-right">
         <div class="user-menu" *ngIf="currentUser">
           <div class="user-info">
-            <span class="user-name">{{ currentUser.nom_complet }}</span>
+             <span class="user-role">{{ getUserRole(currentUser) }}</span>
             <span class="user-role">{{ currentUser.departement }}</span>
           </div>
           <div class="dropdown">
